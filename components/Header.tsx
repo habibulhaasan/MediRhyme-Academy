@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/free-mcq", label: "ফ্রি মডেল টেস্ট" },
   { href: "/mcq-exam", label: "MCQ পরীক্ষা" },
   { href: "/#contact", label: "যোগাযোগ" },
+  { href: "/track", label: "পেমেন্ট ভেরিফাই" },
 ];
 
 export default function Header() {

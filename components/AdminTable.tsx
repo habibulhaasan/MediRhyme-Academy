@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Download, Search, CheckCircle, XCircle, Clock } from "lucide-react";
+import { db, auth } from "@/lib/firebase";
+import { Download, Search, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export interface ColumnDef {
@@ -22,6 +22,7 @@ export default function AdminTable({ collectionName, columns, title, showStatusA
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, collectionName), orderBy("createdAt", "desc"));
@@ -38,10 +39,41 @@ export default function AdminTable({ collectionName, columns, title, showStatusA
     return rows.filter((r) => Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(s)));
   }, [rows, search]);
 
-  async function updateStatus(id: string, status: string) {
+  // Approving now goes through /api/admin/approve so it also sends the
+  // student a confirmation email (via the Apps Script webhook).
+  async function handleApprove(id: string) {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("লগইন করুন");
+      return;
+    }
+    setApprovingId(id);
     try {
-      await updateDoc(doc(db, collectionName, id), { status });
-      toast.success(`Status updated to ${status}`);
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ collection: collectionName, id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Approval failed");
+
+      toast.success(
+        data.emailSent ? "Approved — confirmation email sent ✅" : "Approved (email could not be sent)"
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
+  // Rejecting doesn't need to email anyone, so it stays a direct Firestore
+  // write, same as before.
+  async function handleReject(id: string) {
+    try {
+      await updateDoc(doc(db, collectionName, id), { status: "Rejected" });
+      toast.success("Status updated to Rejected");
     } catch {
       toast.error("Update failed");
     }
@@ -104,12 +136,22 @@ export default function AdminTable({ collectionName, columns, title, showStatusA
                     <div className="flex items-center gap-2">
                       <StatusBadge status={row.status} />
                       {row.status !== "Approved" && (
-                        <button onClick={() => updateStatus(row.id, "Approved")} className="text-green-600 hover:text-green-800" title="Approve">
-                          <CheckCircle size={18} />
+                        <button
+                          onClick={() => handleApprove(row.id)}
+                          disabled={approvingId === row.id}
+                          className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                          title="Approve & email student"
+                        >
+                          {approvingId === row.id ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                         </button>
                       )}
                       {row.status !== "Rejected" && (
-                        <button onClick={() => updateStatus(row.id, "Rejected")} className="text-red-500 hover:text-red-700" title="Reject">
+                        <button
+                          onClick={() => handleReject(row.id)}
+                          disabled={approvingId === row.id}
+                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                          title="Reject"
+                        >
                           <XCircle size={18} />
                         </button>
                       )}
