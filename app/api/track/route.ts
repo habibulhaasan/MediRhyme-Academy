@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { handleApiError } from "@/lib/apiError";
 
-// Public endpoint — a student proves ownership of a record by knowing both
-// the email AND phone they registered with. Only a safe subset of fields
-// is returned, never the raw Firestore document.
+// Public endpoint — a student proves ownership of records by knowing both
+// the email AND phone they registered with. Returns EVERY matching
+// registration (a student may have submitted more than once), newest first,
+// with only the fields relevant to tracking payment status.
 export async function GET(req: NextRequest) {
   try {
     const email = req.nextUrl.searchParams.get("email")?.trim();
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
       .collection("students")
       .where("email", "==", email)
       .where("phone", "==", phone)
-      .limit(1)
+      .orderBy("createdAt", "desc")
       .get();
 
     if (snap.empty) {
@@ -32,17 +33,31 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = snap.docs[0].data();
+    const registrations = snap.docs.map((doc) => {
+      const data = doc.data();
+      // Firestore Admin SDK returns a Timestamp object for serverTimestamp()
+      // fields — convert to ISO strings so the client can format them.
+      const createdAt = data.createdAt?.toDate
+        ? data.createdAt.toDate().toISOString()
+        : null;
 
-    return NextResponse.json({
-      success: true,
-      name: data.name ?? "",
-      status: data.status ?? "Pending",
-      paymentStatus: data.paymentStatus ?? "awaiting-gateway",
-      paymentAmount: data.paymentAmount ?? 0,
-      department: data.department ?? "",
-      session: data.session ?? "",
+      return {
+        id: doc.id,
+        name: data.name ?? "",
+        status: data.status ?? "Pending",
+        paymentStatus: data.paymentStatus ?? "awaiting-gateway",
+        paymentAmount: data.paidAmount ?? data.paymentAmount ?? 0,
+        trnxId: data.trnxId ?? "",
+        department: data.department ?? "",
+        session: data.session ?? "",
+        ihtName: data.ihtName ?? "",
+        comments: data.comments ?? "",
+        createdAt,
+        approvedAt: data.approvedAt ?? null,
+      };
     });
+
+    return NextResponse.json({ success: true, registrations });
   } catch (err) {
     return handleApiError(err);
   }
