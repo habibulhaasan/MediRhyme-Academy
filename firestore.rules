@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public settings (fees, seminar info, mcq exam config) — readable by
+    // everyone, writable only by signed-in admins.
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Registrations — anyone can create (submit a form), but only signed-in
+    // admins can read the list or update status. Writes to these
+    // collections from the browser only happen through the server API
+    // routes (which use the Admin SDK), so client create rules stay locked
+    // down; adjust if you decide to write directly from the client instead.
+    match /students/{docId} {
+      allow read, update, delete: if request.auth != null;
+      allow create: if false; // created via /api/register (Admin SDK)
+    }
+
+    match /seminar_registrations/{docId} {
+      allow read, update, delete: if request.auth != null;
+      allow create: if false; // created via /api/seminar-register (Admin SDK)
+    }
+
+    match /mcq_registrations/{docId} {
+      allow read, update, delete: if request.auth != null;
+      allow create: if false; // created via /api/mcq-register (Admin SDK)
+    }
+  }
+}

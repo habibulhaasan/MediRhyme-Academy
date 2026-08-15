@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Hind Siliguri', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background: #f9f9f9;
+}
+
+section { scroll-margin-top: 90px; }
+
+.btn-primary {
+  @apply inline-block bg-gold text-navy-dark font-bold px-7 py-3 rounded-full shadow-lg
+    transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:bg-gold-light active:translate-y-0;
+}
+
+.section-title {
+  @apply text-2xl md:text-3xl font-bold text-navy text-center mb-3 font-poppins;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #003366; border-radius: 8px; }
