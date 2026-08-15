@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { createCharge } from "@/lib/piprapay";
+import { handleApiError } from "@/lib/apiError";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      name, email, phone, address, ihtName, department, session,
-      passingYear, paymentAmount, trnxId, comments,
+      name, email, phone, address, addressDetail, divisionId, districtId, upazilaId,
+      ihtName, department, session, passingYear, paymentAmount, trnxId, comments,
     } = body;
 
     if (!name || !email || !phone || !department) {
@@ -16,7 +17,13 @@ export async function POST(req: NextRequest) {
     }
 
     const docRef = await getAdminDb().collection("students").add({
-      name, email, phone, address, ihtName, department, session, passingYear,
+      name, email, phone,
+      address: address || "",
+      addressDetail: addressDetail || "",
+      divisionId: divisionId || "",
+      districtId: districtId || "",
+      upazilaId: upazilaId || "",
+      ihtName, department, session, passingYear,
       paymentAmount: Number(paymentAmount) || 0,
       trnxId: trnxId || "",
       comments: comments || "",
@@ -49,7 +56,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, id: docRef.id });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, error: "সার্ভার সমস্যা, আবার চেষ্টা করুন" }, { status: 500 });
+    return handleApiError(err);
   }
 }

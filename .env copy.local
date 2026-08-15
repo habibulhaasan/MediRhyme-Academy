@@ -1,0 +1,27 @@
+# ===== Firebase (client - public) =====
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyA9Y5kIXVc0q-vJ0gamGrDWhBUDI3Y6n2A
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=medirhyme-academy.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=medirhyme-academy
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=medirhyme-academy.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=650366577114
+NEXT_PUBLIC_FIREBASE_APP_ID=1:650366577114:web:4e74c633ead87f54fdb8e3
+
+
+# ===== Firebase Admin (server only - from service account JSON) =====
+FIREBASE_ADMIN_PROJECT_ID=medirhyme-academy
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-fbsvc@medirhyme-academy.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDrdxFXEbRL+Rrv\n6jY0ZMrJDYxFcpUAx32mIJ9gkRjnZvfg0/dF/p74mSoMVEQfZmJ1/sDdnV0LeuyG\nHDNrnqLQCKrZEvTTWNPqG0JuIh91Y0nMss1swtOMf3f9Ue3rWcC/WEqK6aflJA4g\non/vUOlRBwBee5tc8qGUgmxmHsuFaMwohqh1TE7qI1hFcLJMnpF7o13EQSdKkk45\nvkE77561lZj+hugLR9Fl13R0idIYLX+0kNYj8fo2wDC9agRm5px1PN2y56b+HUJi\n9KDMJUZb6W1Ks2ODV4XGW4bR9VpbZT0AC25wmOqEV5oI0hO7Zn+17esx4ca/j8wX\nPhr5UlgRAgMBAAECggEACFPgjJ7x101a8F5CXC2uZa2cJulLr3M0FJfgcHa2le80\ngsKXDbuDctEJRYCwx22EZkjuwvJpqS9ymwxMne3xMytYo4RsnTxDLmtCuQjC6mYV\nukQeniNGfm2/As9kJefkOGrjzrA/LGGkkESUWBSZU9t2s2DAGL70tlRl3LdnxPLj\nrmOYOUmjfu+CwatOstw0eh1rM9ZZx5Qze4IhcHqwkhhr2YEKQ047RtMtY9x1kKMu\nqDA+k12MZa2/xDuC0aXdqSgQl2IZgXOC40QhYMUAXGefnxGsMJAOqTTzlGooqK0D\njbG6TVTDfbmyE/TEtcs+k/ObMS1STTWlOSqdfcA5OQKBgQD+Jm8nbwHXwisY/N4E\nKmcw57T/e/NWPq3v3Jbof3TuJhcqyrmOJL8PiPgnQRFMfS3Z90VxdLeLKZ4YMeSe\n2eHQd/ln43TDzY8iNSYdzHB931k+tKXJ1uJFJ4Fu3eZ6VbF2an/TWNuxhgc9u3EE\nSicyD3S7oov+/yUtHhDG7GfdfQKBgQDtLdEw/+ZsaoOOXN6zkFyr4u5s3r8kRtrh\nt/dc3axLMWlXSuqXJH8CpxbVSYDebojPSDsEkG+232Q96k9dEMyxJeIqO5yJ4wmI\nQ5AccMgKupmRMeZJ/wu7QyGA211zYM2A0DLvVvHoVK6YKq26y6dqKTkzvnn5BsJh\nGz/r4EC5JQKBgQCls5dbJYQVETKaOxvhqWfYOeoHfOAdhgZP0gnOEnPBZbJLIxux\n8oFjdpEcvs6xiRgg+ZgcLdYRdJPwAG+npjUVf3Nr6Z/Sna5Jxk9QtF9PohSEzrEd\nFO432lcIWsMPVdm7dBpdSJ0MdG86L4CzJEnD2NHqGEOggOfTL7wOhkn93QKBgQDm\nkwQrfpukCmiane5i4pU1BQiFDocD3V4s0YvI3DgDYaXnFw24oeJX0diAwVRm6U5X\nNQErDr+MKOBq0L8W2p4kGZAlPo6P/gfmUMho3bubsoxYewpGJYxiIIERpDDVWeZu\ns/jQdNX351tU0yjRz+qRakIR67roPYn6nWMnDHvfgQKBgBCmVz+H4Ep265XsIIEk\neBwnT59t5BjmSn6DFoWh84AseYl3Eu+AXRDIL2eD3JRAJrt7sCK0wyJ9IArlrPja\nwo6rdumV1Or7719HRvJY6pRkjRsLIZO45xdS4sY2b1B5feKGvxuV5Zt4vZk/Fi3i\nV6W9VJnaJ+WFmUMqMXnNjK/6\n-----END PRIVATE KEY-----\n",
+
+
+# ===== PipraPay (piprapay.com self-hosted payment verification) =====
+# Base URL of your self-hosted PipraPay instance, e.g. https://pay.yourdomain.com
+PIPRAPAY_BASE_URL=
+# API key generated from PipraPay merchant panel (Settings > API)
+PIPRAPAY_API_KEY=
+# Used to build redirect URLs after payment
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Webhook shared secret (if your PipraPay instance signs webhooks) - verify in your panel
+PIPRAPAY_WEBHOOK_SECRET=
+
+

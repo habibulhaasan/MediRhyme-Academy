@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { verifyPayment } from "@/lib/piprapay";
+import { handleApiError } from "@/lib/apiError";
 
 // PipraPay calls this URL after a payment attempt (configured as `webhook_url`
 // when the charge was created). The exact payload field names can differ
@@ -41,7 +42,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, error: "Webhook processing failed" }, { status: 500 });
+    return handleApiError(err);
   }
 }

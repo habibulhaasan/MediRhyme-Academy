@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import IhtSelect from "@/components/IhtSelect";
+import { NON_GOVT_IHT_VALUE } from "@/lib/ihtList";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -10,21 +12,27 @@ import { Loader2 } from "lucide-react";
 export default function FreeMcqPage() {
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [ihtSelected, setIhtSelected] = useState("");
+  const [ihtManual, setIhtManual] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    const ihtName = ihtSelected === NON_GOVT_IHT_VALUE ? ihtManual.trim() : ihtSelected;
+
     try {
       const res = await fetch("/api/mcq-register", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, examType: "free" }),
+        body: JSON.stringify({ ...data, ihtName, examType: "free" }),
       });
       const result = await res.json();
       if (!res.ok || !result.success) throw new Error(result.error || "রেজিস্ট্রেশন ব্যর্থ হয়েছে");
       setRegistered(true);
       form.reset();
+      setIhtSelected("");
+      setIhtManual("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "সমস্যা হয়েছে");
     } finally {
@@ -52,8 +60,8 @@ export default function FreeMcqPage() {
             <Field label="নাম" name="name" required />
             <Field label="ইমেইল" name="email" type="email" />
             <Field label="ফোন" name="phone" type="tel" required />
-            <Field label="আই.এইচ.টির নাম" name="ihtName" />
-            <Field label="বিভাগ" name="department" />
+            <IhtSelect selected={ihtSelected} manualName={ihtManual} onSelectedChange={setIhtSelected} onManualNameChange={setIhtManual} />
+            <Field label="ডিপার্টমেন্ট" name="department" />
             <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
               {loading && <Loader2 className="animate-spin" size={18} />}
               {loading ? "জমা দেওয়া হচ্ছে..." : "রেজিস্ট্রেশন করুন"}

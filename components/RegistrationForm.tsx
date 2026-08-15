@@ -3,24 +3,51 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import LocationSelect, { type LocationValue } from "./LocationSelect";
+import IhtSelect from "./IhtSelect";
+import { NON_GOVT_IHT_VALUE } from "@/lib/ihtList";
+import { resolveAddress } from "@/lib/location/location-data";
 
 const DEPARTMENTS = ["Pharmacy", "Laboratory", "Radiology", "Physiotherapy", "Radiotherapy", "Dental"];
+const EMPTY_LOCATION: LocationValue = { divisionId: "", districtId: "", upazilaId: "", addressDetail: "" };
 
 export default function RegistrationForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION);
+  const [ihtSelected, setIhtSelected] = useState("");
+  const [ihtManual, setIhtManual] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+
+    const ihtName = ihtSelected === NON_GOVT_IHT_VALUE ? ihtManual.trim() : ihtSelected;
+    if (!ihtName) {
+      toast.error("অনুগ্রহ করে আই.এইচ.টির নাম দিন");
+      setLoading(false);
+      return;
+    }
+
+    const resolvedAddress = resolveAddress(location.divisionId, location.districtId, location.upazilaId, "bn");
+
+    const payload = {
+      ...data,
+      ihtName,
+      address: `${location.addressDetail}, ${resolvedAddress.label}`.replace(/^,\s*/, ""),
+      addressDetail: location.addressDetail,
+      divisionId: location.divisionId,
+      districtId: location.districtId,
+      upazilaId: location.upazilaId,
+    };
 
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
 
@@ -28,9 +55,6 @@ export default function RegistrationForm() {
         throw new Error(result.error || "রেজিস্ট্রেশন ব্যর্থ হয়েছে");
       }
 
-      // If a PipraPay payment URL is returned, send the student there to
-      // complete/verify payment; otherwise treat it as a manual bKash/Nagad
-      // trxId submission (matches the original workflow).
       if (result.paymentUrl) {
         window.location.href = result.paymentUrl;
         return;
@@ -38,6 +62,9 @@ export default function RegistrationForm() {
 
       setSuccess(true);
       form.reset();
+      setLocation(EMPTY_LOCATION);
+      setIhtSelected("");
+      setIhtManual("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন");
     } finally {
@@ -56,13 +83,21 @@ export default function RegistrationForm() {
         <Field label="নাম" name="name" placeholder="সার্টিফিকেট অনুসারে নাম লিখুন" required />
         <Field label="ইমেইল" name="email" type="email" placeholder="সঠিক Gmail লিখুন" required />
         <Field label="ফোন" name="phone" type="tel" placeholder="মোবাইল নাম্বার দিন" required />
-        <TextArea label="বর্তমান/অফিস ঠিকানা" name="address" placeholder="আপনার বর্তমান অথবা অফিস ঠিকানা লিখুন" required />
-        <Field label="আই.এইচ.টির নাম" name="ihtName" placeholder="আপনার ইনস্টিটিউটের নাম" required />
+
+        <LocationSelect value={location} onChange={setLocation} required />
+
+        <IhtSelect
+          selected={ihtSelected}
+          manualName={ihtManual}
+          onSelectedChange={setIhtSelected}
+          onManualNameChange={setIhtManual}
+          required
+        />
 
         <div>
-          <label className="block text-sm font-semibold text-navy mb-1">বিভাগ</label>
+          <label className="block text-sm font-semibold text-navy mb-1">ডিপার্টমেন্ট</label>
           <select name="department" required defaultValue="" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy/40">
-            <option value="" disabled>বিভাগ নির্বাচন করুন</option>
+            <option value="" disabled>ডিপার্টমেন্ট নির্বাচন করুন</option>
             {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>

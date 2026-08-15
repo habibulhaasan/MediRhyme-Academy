@@ -3,24 +3,50 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import LocationSelect, { type LocationValue } from "./LocationSelect";
+import IhtSelect from "./IhtSelect";
+import { NON_GOVT_IHT_VALUE } from "@/lib/ihtList";
+import { resolveAddress } from "@/lib/location/location-data";
+
+const EMPTY_LOCATION: LocationValue = { divisionId: "", districtId: "", upazilaId: "", addressDetail: "" };
 
 export default function SeminarForm() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION);
+  const [ihtSelected, setIhtSelected] = useState("");
+  const [ihtManual, setIhtManual] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+
+    const ihtName = ihtSelected === NON_GOVT_IHT_VALUE ? ihtManual.trim() : ihtSelected;
+    const resolvedAddress = resolveAddress(location.divisionId, location.districtId, location.upazilaId, "bn");
+
+    const payload = {
+      ...data,
+      ihtName,
+      address: `${location.addressDetail}, ${resolvedAddress.label}`.replace(/^,\s*/, ""),
+      addressDetail: location.addressDetail,
+      divisionId: location.divisionId,
+      districtId: location.districtId,
+      upazilaId: location.upazilaId,
+    };
+
     try {
       const res = await fetch("/api/seminar-register", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       const result = await res.json();
       if (!res.ok || !result.success) throw new Error(result.error || "রেজিস্ট্রেশন ব্যর্থ হয়েছে");
       setDone(true);
       form.reset();
+      setLocation(EMPTY_LOCATION);
+      setIhtSelected("");
+      setIhtManual("");
       toast.success("রেজিস্ট্রেশন সম্পন্ন হয়েছে!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "সমস্যা হয়েছে");
@@ -46,13 +72,16 @@ export default function SeminarForm() {
       <Field label="নাম" name="name" required />
       <Field label="ইমেইল" name="email" type="email" required />
       <Field label="ফোন" name="phone" type="tel" required />
-      <Field label="বর্তমান ঠিকানা" name="address" />
-      <Field label="আই.এইচ.টির নাম" name="ihtName" />
+
+      <LocationSelect value={location} onChange={setLocation} />
+
+      <IhtSelect selected={ihtSelected} manualName={ihtManual} onSelectedChange={setIhtSelected} onManualNameChange={setIhtManual} />
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="সেশন" name="session" placeholder="যেমন: 2017-18" />
         <Field label="পাশের সাল" name="passingYear" placeholder="যেমন: 2023" />
       </div>
-      <Field label="বিভাগ" name="department" />
+      <Field label="ডিপার্টমেন্ট" name="department" />
       <Field label="মন্তব্য (ঐচ্ছিক)" name="comments" />
       <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
         {loading && <Loader2 className="animate-spin" size={18} />}

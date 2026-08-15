@@ -70,6 +70,68 @@ npm run dev
 Works on Vercel out of the box — set the same env vars in the Vercel project
 settings. Firestore/Auth need no extra server since Firebase handles that.
 
+## Troubleshooting "সার্ভার সমস্যা হচ্ছে" / data not saving
+
+This almost always means the **Firebase Admin** env vars (`FIREBASE_ADMIN_PROJECT_ID`,
+`FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`) aren't set or aren't
+being read correctly — these are what the server uses to write to Firestore
+(different from the `NEXT_PUBLIC_FIREBASE_*` client keys, which only cover
+reading + admin login).
+
+1. Deploy, then open **`/api/health`** in your browser. It reports, without
+   leaking secrets:
+   - which env vars are present (client + admin)
+   - whether Firebase Admin actually initialized
+   - whether a real Firestore write+read round-trip succeeded, and the exact
+     error if not
+2. Common causes it will point you to:
+   - `FIREBASE_ADMIN_PRIVATE_KEY` missing, or pasted without the surrounding
+     quotes (needs to be one string with `\n` for line breaks — copy it
+     exactly as `firebase-admin` expects, quotes included, e.g.
+     `FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"`).
+   - Env vars added on your host (Vercel etc.) but the app not redeployed
+     since — env var changes need a redeploy to take effect.
+   - Local dev: env vars added to `.env.local` but the dev server wasn't
+     restarted (`npm run dev` only reads `.env.local` at startup).
+   - Firestore database not created yet in the Firebase console (Firestore
+     Database → Create database), or created in "Datastore mode" instead of
+     "Native mode".
+   - Wrong project: `FIREBASE_ADMIN_PROJECT_ID` pointing at a different
+     Firebase project than `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
+3. If registrations save but the **admin dashboard** (approve/reject, fees
+   settings) fails silently: make sure `firestore.rules` from this repo is
+   actually deployed in the Firebase console (Firestore → Rules tab) —
+   without it, the default rules block all client reads/writes even for a
+   logged-in admin.
+
+## What's new in this update
+
+- **Bangladesh location dropdowns** (Division → District → Upazila, Bangla
+  labels) on the registration and seminar forms, powered by
+  [habibulhaasan/Location-JSON](https://github.com/habibulhaasan/Location-JSON)
+  (`lib/location/`) — replaces the old free-text address field. The stored
+  record keeps both the readable address and the raw `divisionId` /
+  `districtId` / `upazilaId` for filtering later.
+- **আই.এইচ.টির নাম** is now a dropdown of government IHTs
+  (`lib/ihtList.ts`) with a "বেসরকারি/অন্যান্য" option that reveals a manual
+  text field. I don't have live web access from this tool, so I couldn't
+  freshly verify DGHS's current official IHT list — please check
+  `lib/ihtList.ts` and add/rename/remove entries if needed; every form reads
+  from that one file.
+- **বিভাগ → ডিপার্টমেন্ট**: the academic department field (Pharmacy, Lab,
+  Radiology, etc.) is now labeled "ডিপার্টমেন্ট" so it isn't confused with
+  the address "বিভাগ" (administrative Division) dropdown that sits right
+  above it.
+- **Mobile admin navigation**: the admin dashboard now has a slide-in drawer
+  menu on phones (previously the sidebar was desktop-only, with no way to
+  switch between Students/Seminar/MCQ tabs on mobile).
+- **Settings-editor bug fix**: the admin "Fees Settings" / "MCQ Exam
+  Settings" forms used to start blank and silently overwrite Firestore with
+  empty values on save. They now load existing values first. Also added a
+  Seminar Info editor (topic/date/time) that was missing.
+- **Better error diagnostics**: see the troubleshooting section above —
+  `/api/health` plus clearer server error messages.
+
 ## Notes / what changed vs the original
 
 - Google Sheets → **Firestore** (`students`, `seminar_registrations`,

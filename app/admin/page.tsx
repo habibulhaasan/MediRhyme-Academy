@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, doc, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, Mic2, ListChecks, Wallet } from "lucide-react";
+import { Users, Mic2, ListChecks, Mic, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import FeesSettingsForm from "@/components/admin/FeesSettingsForm";
 
 function useCount(collectionName: string) {
   const [count, setCount] = useState<number | null>(null);
@@ -30,7 +31,14 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      <SettingsEditor />
+      <div className="grid md:grid-cols-2 gap-6 items-start">
+        <FeesSettingsForm />
+
+        <div className="space-y-6">
+          <McqExamSettingsForm />
+          <SeminarInfoForm />
+        </div>
+      </div>
     </div>
   );
 }
@@ -45,60 +53,109 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
   );
 }
 
-function SettingsEditor() {
-  const [fees, setFees] = useState({
-    courseFee: "", deadline: "", discountPercent: "", offeredAmount: "", paymentNo: "",
-    mcqCourseFee: "", mcqDeadline: "", mcqDiscountPercent: "", mcqOfferedAmount: "", mcqPaymentNo: "",
-  });
+function McqExamSettingsForm() {
   const [mcqExam, setMcqExam] = useState({ formUrl: "", isOpen: false, durationMinutes: 60 });
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function saveFees(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await setDoc(doc(db, "settings", "fees"), fees, { merge: true });
-      toast.success("Fees settings saved");
-    } catch { toast.error("Save failed"); }
-    setSaving(false);
-  }
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "settings", "mcqExam"));
+        if (snap.exists()) setMcqExam((f) => ({ ...f, ...snap.data() }));
+      } catch (err) {
+        toast.error("সেটিংস লোড করতে সমস্যা হয়েছে");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  async function saveMcqExam(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
       await setDoc(doc(db, "settings", "mcqExam"), mcqExam, { merge: true });
       toast.success("MCQ exam settings saved");
-    } catch { toast.error("Save failed"); }
+    } catch (err) {
+      toast.error("Save failed — check you're logged in and Firestore rules are deployed");
+      console.error(err);
+    }
     setSaving(false);
   }
 
-  return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <form onSubmit={saveFees} className="bg-white rounded-xl shadow p-5 space-y-3">
-        <h2 className="font-bold text-navy flex items-center gap-2 mb-2"><Wallet size={18} /> Fees Settings (homepage cards)</h2>
-        {Object.keys(fees).map((k) => (
-          <input key={k} placeholder={k} value={(fees as any)[k]}
-            onChange={(e) => setFees((f) => ({ ...f, [k]: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-        ))}
-        <button disabled={saving} className="btn-primary text-sm">Save Fees</button>
-      </form>
+  if (loading) {
+    return <div className="bg-white rounded-xl shadow p-5 flex items-center gap-2 text-gray-500"><Loader2 className="animate-spin" size={18} /> Loading...</div>;
+  }
 
-      <form onSubmit={saveMcqExam} className="bg-white rounded-xl shadow p-5 space-y-3">
-        <h2 className="font-bold text-navy flex items-center gap-2 mb-2"><ListChecks size={18} /> MCQ Exam Settings</h2>
-        <input placeholder="Google Form embed URL" value={mcqExam.formUrl}
-          onChange={(e) => setMcqExam((f) => ({ ...f, formUrl: e.target.value }))}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-        <input type="number" placeholder="Duration (minutes)" value={mcqExam.durationMinutes}
-          onChange={(e) => setMcqExam((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={mcqExam.isOpen} onChange={(e) => setMcqExam((f) => ({ ...f, isOpen: e.target.checked }))} />
-          Exam is currently open
-        </label>
-        <button disabled={saving} className="btn-primary text-sm">Save MCQ Settings</button>
-      </form>
-    </div>
+  return (
+    <form onSubmit={save} className="bg-white rounded-xl shadow p-5 space-y-3">
+      <h2 className="font-bold text-navy flex items-center gap-2 mb-2"><ListChecks size={18} /> MCQ Exam Settings</h2>
+      <input placeholder="Google Form embed URL" value={mcqExam.formUrl}
+        onChange={(e) => setMcqExam((f) => ({ ...f, formUrl: e.target.value }))}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <input type="number" placeholder="Duration (minutes)" value={mcqExam.durationMinutes}
+        onChange={(e) => setMcqExam((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={mcqExam.isOpen} onChange={(e) => setMcqExam((f) => ({ ...f, isOpen: e.target.checked }))} />
+        Exam is currently open
+      </label>
+      <button disabled={saving} className="btn-primary text-sm">{saving ? "Saving..." : "Save MCQ Settings"}</button>
+    </form>
+  );
+}
+
+function SeminarInfoForm() {
+  const [seminarInfo, setSeminarInfo] = useState({ topic: "", date: "", time: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "settings", "seminar"));
+        if (snap.exists()) setSeminarInfo((f) => ({ ...f, ...snap.data() }));
+      } catch (err) {
+        toast.error("সেটিংস লোড করতে সমস্যা হয়েছে");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await setDoc(doc(db, "settings", "seminar"), seminarInfo, { merge: true });
+      toast.success("Seminar info saved");
+    } catch (err) {
+      toast.error("Save failed — check you're logged in and Firestore rules are deployed");
+      console.error(err);
+    }
+    setSaving(false);
+  }
+
+  if (loading) {
+    return <div className="bg-white rounded-xl shadow p-5 flex items-center gap-2 text-gray-500"><Loader2 className="animate-spin" size={18} /> Loading...</div>;
+  }
+
+  return (
+    <form onSubmit={save} className="bg-white rounded-xl shadow p-5 space-y-3">
+      <h2 className="font-bold text-navy flex items-center gap-2 mb-2"><Mic size={18} /> Seminar Info (seminar page)</h2>
+      <input placeholder="Topic" value={seminarInfo.topic}
+        onChange={(e) => setSeminarInfo((f) => ({ ...f, topic: e.target.value }))}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="Date" value={seminarInfo.date}
+        onChange={(e) => setSeminarInfo((f) => ({ ...f, date: e.target.value }))}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <input placeholder="Time" value={seminarInfo.time}
+        onChange={(e) => setSeminarInfo((f) => ({ ...f, time: e.target.value }))}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <button disabled={saving} className="btn-primary text-sm">{saving ? "Saving..." : "Save Seminar Info"}</button>
+    </form>
   );
 }

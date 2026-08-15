@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { handleApiError } from "@/lib/apiError";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: NextRequest) {
@@ -20,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, id: docRef.id });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, error: "সার্ভার সমস্যা, আবার চেষ্টা করুন" }, { status: 500 });
+    return handleApiError(err);
   }
 }
