@@ -6,6 +6,7 @@ export default function StudentsAdminPage() {
     <AdminTable
       collectionName="students"
       title="Student Registrations"
+      adminEditableFields={["batch", "payableAmount", "paidAmount", "comments"]}
       columns={[
         { key: "name", label: "Name" },
         { key: "email", label: "Email" },
@@ -13,7 +14,11 @@ export default function StudentsAdminPage() {
         { key: "department", label: "Department" },
         { key: "ihtName", label: "IHT" },
         { key: "session", label: "Session" },
-        { key: "paymentAmount", label: "Amount" },
+        {
+          key: "serviceType",
+          label: "Service",
+          render: (v) => (v === "mcq" ? "MCQ Exam" : "Course"),
+        },
         { key: "trnxId", label: "Trnx ID" },
         { key: "paymentStatus", label: "Payment" },
       ]}
