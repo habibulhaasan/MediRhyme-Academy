@@ -66,16 +66,20 @@ export async function POST(req: NextRequest) {
     // 5. Email the student. If this fails, the approval itself has already
     // succeeded — report it separately rather than rolling back.
     let emailSent = false;
+    let emailError: string | null = null;
     if (data.email) {
       try {
         await sendApprovalEmail(data.email, data.name || "");
         emailSent = true;
       } catch (emailErr) {
-        console.error("Approval email failed:", emailErr);
+        emailError = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        console.error("Approval email failed:", emailError);
       }
+    } else {
+      emailError = "No email address on this registration";
     }
 
-    return NextResponse.json({ success: true, emailSent });
+    return NextResponse.json({ success: true, emailSent, emailError });
   } catch (err) {
     return handleApiError(err);
   }
