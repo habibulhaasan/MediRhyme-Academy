@@ -8,7 +8,9 @@ type Registration = {
   name: string;
   status: string;
   paymentStatus: string;
-  paymentAmount: number;
+  serviceType: "course" | "mcq";
+  payableAmount: number;
+  paidAmount: number;
   trnxId: string;
   department: string;
   session: string;
@@ -110,10 +112,12 @@ export default function TrackPage() {
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <h3 className="font-bold text-navy">{reg.department || "—"}</h3>
+                    <h3 className="font-bold text-navy">
+                      {reg.serviceType === "mcq" ? "এমসিকিউ পরীক্ষা ব্যাচ" : "রেগুলার কোর্স"} • {reg.department || "—"}
+                    </h3>
                     <p className="text-xs text-gray-400">{formatDate(reg.createdAt)}</p>
                   </div>
-                  <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${statusInfo?.color ?? "text-gray-500 bg-gray-50"}`}>
+                  <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${statusInfo?.color ?? "text-gray-500 bg-gray-50"}`}>
                     <StatusIcon size={14} />
                     {statusInfo?.label ?? reg.paymentStatus}
                   </span>
@@ -126,8 +130,13 @@ export default function TrackPage() {
                   <dt className="text-gray-400">সেশন</dt>
                   <dd className="text-gray-700 text-right">{reg.session || "—"}</dd>
 
-                  <dt className="text-gray-400">পরিমাণ</dt>
-                  <dd className="text-gray-700 text-right">৳{reg.paymentAmount}</dd>
+                  <dt className="text-gray-400">পরিশোধযোগ্য</dt>
+                  <dd className="text-gray-700 text-right">৳{reg.payableAmount}</dd>
+
+                  <dt className="text-gray-400">পরিশোধিত</dt>
+                  <dd className={`text-right font-semibold ${reg.paidAmount >= reg.payableAmount && reg.paidAmount > 0 ? "text-green-600" : "text-amber-600"}`}>
+                    ৳{reg.paidAmount}
+                  </dd>
 
                   <dt className="text-gray-400">Trnx ID</dt>
                   <dd className="text-gray-700 text-right break-all">{reg.trnxId || "—"}</dd>
