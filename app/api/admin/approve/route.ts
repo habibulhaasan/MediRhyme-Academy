@@ -45,10 +45,20 @@ export async function POST(req: NextRequest) {
     }
     const data = snap.data()!;
 
+    // If paidAmount hasn't been set yet, default it to the payable amount —
+    // approving implies the payment is confirmed in full. Admin can still
+    // hand-adjust it afterward (partial payment, extra discount, etc).
+    // Falls back to the old `paymentAmount` field name for records created
+    // before the payable/paid split existed.
+    const payable = data.payableAmount ?? data.paymentAmount ?? 0;
+    const paidAmountUpdate =
+      collection === "students" && !data.paidAmount ? { paidAmount: payable } : {};
+
     // 4. Mark approved.
     await ref.update({
       status: "Approved",
       ...(collection === "students" ? { paymentStatus: "verified" } : {}),
+      ...paidAmountUpdate,
       approvedAt: new Date().toISOString(),
       approvedBy: decoded.email ?? decoded.uid,
     });
