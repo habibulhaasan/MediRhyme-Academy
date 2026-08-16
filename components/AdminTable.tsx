@@ -79,9 +79,11 @@ export default function AdminTable({
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Approval failed");
 
-      toast.success(
-        data.emailSent ? "Approved — confirmation email sent ✅" : "Approved (email could not be sent)"
-      );
+      if (data.emailSent) {
+        toast.success("Approved — confirmation email sent ✅");
+      } else {
+        toast.error(`Approved, but email failed: ${data.emailError || "unknown error"}`, { duration: 6000 });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
