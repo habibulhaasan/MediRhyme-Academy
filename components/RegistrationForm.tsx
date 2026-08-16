@@ -1,15 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import LocationSelect, { type LocationValue } from "./LocationSelect";
 import IhtSelect from "./IhtSelect";
 import { NON_GOVT_IHT_VALUE } from "@/lib/ihtList";
 import { resolveAddress } from "@/lib/location/location-data";
+import { EMPTY_FEES, resolveFee, type FeesSettings } from "@/lib/fees";
 
 const DEPARTMENTS = ["Pharmacy", "Laboratory", "Radiology", "Physiotherapy", "Radiotherapy", "Dental"];
 const EMPTY_LOCATION: LocationValue = { divisionId: "", districtId: "", upazilaId: "", addressDetail: "" };
+
+type ServiceType = "course" | "mcq";
 
 export default function RegistrationForm() {
   const [loading, setLoading] = useState(false);
@@ -17,6 +22,39 @@ export default function RegistrationForm() {
   const [location, setLocation] = useState<LocationValue>(EMPTY_LOCATION);
   const [ihtSelected, setIhtSelected] = useState("");
   const [ihtManual, setIhtManual] = useState("");
+
+  const [fees, setFees] = useState<FeesSettings>(EMPTY_FEES);
+  const [feesLoading, setFeesLoading] = useState(true);
+  const [serviceType, setServiceType] = useState<ServiceType>("course");
+  const [batch, setBatch] = useState(""); // fetched silently, never shown to the student
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [feesSnap, batchSnap] = await Promise.all([
+          getDoc(doc(db, "settings", "fees")),
+          getDoc(doc(db, "settings", "batch")),
+        ]);
+        if (feesSnap.exists()) {
+          setFees((f) => ({ ...f, ...(feesSnap.data() as Partial<FeesSettings>) }));
+        }
+        if (batchSnap.exists()) {
+          setBatch((batchSnap.data() as { currentBatch?: string }).currentBatch || "");
+        }
+      } catch (err) {
+        console.error("Failed to load fee/batch settings:", err);
+      } finally {
+        setFeesLoading(false);
+      }
+    })();
+  }, []);
+
+  const payableAmount =
+    serviceType === "mcq"
+      ? resolveFee(fees.mcqCourseFee, fees.mcqOfferedAmount, fees.mcqDeadline)
+      : resolveFee(fees.courseFee, fees.offeredAmount, fees.deadline);
+
+  const paymentNo = serviceType === "mcq" ? fees.mcqPaymentNo : fees.paymentNo;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,6 +79,9 @@ export default function RegistrationForm() {
       divisionId: location.divisionId,
       districtId: location.districtId,
       upazilaId: location.upazilaId,
+      serviceType,
+      payableAmount,
+      batch, // silent — not shown in the UI, just carried along for admin
     };
 
     try {
@@ -65,6 +106,7 @@ export default function RegistrationForm() {
       setLocation(EMPTY_LOCATION);
       setIhtSelected("");
       setIhtManual("");
+      setServiceType("course");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন");
     } finally {
@@ -107,11 +149,39 @@ export default function RegistrationForm() {
           <Field label="পাশের সাল" name="passingYear" pattern="[0-9]{4}" placeholder="যেমন: 2023" required />
         </div>
 
-        <Field label="পেমেন্টের পরিমাণ (টাকা)" name="paymentAmount" type="number" min={1060} placeholder="কত টাকা দিয়েছেন তা লিখুন" required />
+        {/* Only shown when the MCQ Exam batch is currently open (settings/fees.mcqCardVisible) */}
+        {!feesLoading && fees.mcqCardVisible && (
+          <div>
+            <label className="block text-sm font-semibold text-navy mb-1">কোন ব্যাচের জন্য আবেদন করছেন</label>
+            <select
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value as ServiceType)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy/40"
+            >
+              <option value="course">রেগুলার কোর্স ব্যাচ</option>
+              <option value="mcq">এমসিকিউ পরীক্ষা ব্যাচ</option>
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-semibold text-navy mb-1">পরিশোধযোগ্য পরিমাণ (৳)</label>
+          <input
+            readOnly
+            value={feesLoading ? "লোড হচ্ছে..." : `৳${payableAmount}`}
+            className="w-full border border-gray-200 bg-gray-50 rounded-lg px-4 py-2.5 text-gray-700 cursor-not-allowed"
+          />
+          {!feesLoading && paymentNo && (
+            <p className="text-xs text-gray-500 mt-1.5">
+              এই নাম্বারে পেমেন্ট পাঠান: <span className="font-semibold text-navy">{paymentNo}</span>
+            </p>
+          )}
+        </div>
+
         <Field label="ট্রান্সেকশন আইডি" name="trnxId" placeholder="Trnx ID অথবা bKash/Nagad নাম্বার (পেমেন্ট গেটওয়ে ব্যবহার করলে ঐচ্ছিক)" />
         <TextArea label="অন্যান্য মন্তব্য (ঐচ্ছিক)" name="comments" placeholder="ব্যাচ (Regular নাকি Exam Only) তা লিখুন" />
 
-        <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
+        <button type="submit" disabled={loading || feesLoading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
           {loading ? <Loader2 className="animate-spin" size={18} /> : null}
           {loading ? "জমা দেওয়া হচ্ছে..." : "নিবন্ধন করুন"}
         </button>
