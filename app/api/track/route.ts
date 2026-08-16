@@ -46,7 +46,12 @@ export async function GET(req: NextRequest) {
         name: data.name ?? "",
         status: data.status ?? "Pending",
         paymentStatus: data.paymentStatus ?? "awaiting-gateway",
-        paymentAmount: data.paidAmount ?? data.paymentAmount ?? 0,
+        serviceType: data.serviceType === "mcq" ? "mcq" : "course",
+        // payableAmount = what's owed; paidAmount = what's actually been
+        // received (falls back to the old merged `paymentAmount` field for
+        // records created before this split existed).
+        payableAmount: data.payableAmount ?? data.paymentAmount ?? 0,
+        paidAmount: data.paidAmount ?? 0,
         trnxId: data.trnxId ?? "",
         department: data.department ?? "",
         session: data.session ?? "",
